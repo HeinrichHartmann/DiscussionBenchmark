@@ -11,7 +11,7 @@ def get_users(file = USER_XML_file):
         user_rec = {}
 
         user_rec["ID"] = int(row.get("Id"))
-        user_rec["userName"] = row.get("DisplayName")
+        user_rec["name"] = row.get("DisplayName")
         
         yield user_rec
 
@@ -22,7 +22,7 @@ def get_posts(file = POST_XML_file):
     for row in xml.findall("row"):
         post_rec = {}
 
-        post_rec["ID"] =      int(row.get("Id")) 
+        post_rec["ID"] =      int(row.get("Id"))
         post_rec["userID"] =  row.get("OwnerUserId")
         post_rec["title"] =   row.get("Title")
         post_rec["content"] = row.get("Body")

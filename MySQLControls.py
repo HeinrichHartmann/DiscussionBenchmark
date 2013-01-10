@@ -1,21 +1,18 @@
 import MySQLdb as db
 
-import ipdb 
-BREAK = ipdb.set_trace
-
 USER_TABLE = "users"
 THREAD_TABLE = "threads"
 POST_TABLE = "posts"
 
 def main():    
-    DBO = SetupRelationalDB()
+    DBO = MySQLControls()
     
     DBO.TEST()
     
     print "Shutting down db"
     DBO.close()
 
-class SetupRelationalDB:
+class MySQLControls:
     
     def __init__(self):
         self.con = db.connect( host = "localhost",
@@ -28,6 +25,9 @@ class SetupRelationalDB:
         self.cursor.close();
         self.con.close();
 
+    def commit(self):
+        self.con.commit()
+        
     def drop_tables(self):
         try: 
             self.cursor.execute("""DROP TABLE IF EXISTS %s;""" % USER_TABLE )
@@ -60,7 +60,7 @@ class SetupRelationalDB:
                   `userID` int(11),
                   `title` text,
                   `content` text,
-                  `date` date,
+                  `date` datetime,
                   PRIMARY KEY (`ID`)
                 );""" % POST_TABLE)
 
@@ -81,11 +81,13 @@ class SetupRelationalDB:
         if ID == None: 
             ID = 0
 
-        with self.con:
-            self.cursor.execute("""
-                INSERT INTO {0}(ID, userName) VALUES({1:d},'{2}');
-            """.format(USER_TABLE,ID,name)
-            )
+        self.cursor.execute("""
+        INSERT INTO {0}(ID, userName) VALUES({1:d},'{2}');
+        """.format(USER_TABLE,
+                   ID,
+                   esc(name)
+                   )
+        )
     
     def insert_thread(self, ID, title):
         if ID == None:
@@ -93,17 +95,25 @@ class SetupRelationalDB:
         
         self.cursor.execute("""
             INSERT INTO {0}(ID, title) VALUES({1:d},'{2}');
-        """.format(THREAD_TABLE,ID,title)
+        """.format(THREAD_TABLE,
+                   ID,
+                   esc(title)
+                   )
         )
         
     def insert_post(self, ID, threadID, userID, title, content, date):
         if ID == None: 
             ID = 0
 
-        with self.con:
-            self.cursor.execute("""
-                INSERT INTO {0}(ID, threadID, userID, title, content, date) VALUES({1:d},{2:d},{3:d},'{4}','{5}','{6}');
-            """.format(POST_TABLE,ID,threadID, userID, title, content, date)
+        self.cursor.execute("""
+            INSERT INTO {0}(ID, threadID, userID, title, content, date) VALUES({1:d},{2:d},{3:d},'{4}','{5}','{6}');
+        """.format(POST_TABLE,
+                   ID,
+                   threadID, 
+                   userID, 
+                   esc(title), 
+                   esc(content), 
+                   date)
             )
         
     def TEST(self):
@@ -115,5 +125,8 @@ class SetupRelationalDB:
         self.insert_post(ID = 0, threadID = 0, userID = 0, title = "test post", content = "test content", date = "2013-01-01")
         self.con.commit()
         
+def esc(s):
+    return db.escape_string(s.encode('ascii','ignore'))
+
 if __name__ == '__main__':
     main()
