@@ -18,7 +18,8 @@ class MySQLControls:
         self.con = db.connect( host = "localhost",
                           user = "discuss",
                           passwd = "discuss",
-                          db   = "discuss" )    
+                          db   = "discuss", 
+                        local_infile = 1)    
         self.cursor = self.con.cursor();
 
     def close(self):
@@ -58,7 +59,6 @@ class MySQLControls:
                   `ID` int(11),
                   `threadID` int(11),
                   `userID` int(11),
-                  `title` text,
                   `content` text,
                   `date` datetime,
                   PRIMARY KEY (`ID`)
@@ -101,29 +101,67 @@ class MySQLControls:
                    )
         )
         
-    def insert_post(self, ID, threadID, userID, title, content, date):
+    def insert_post(self, ID, threadID, userID, content, date):
         if ID == None: 
             ID = 0
 
         self.cursor.execute("""
-            INSERT INTO {0}(ID, threadID, userID, title, content, date) VALUES({1:d},{2:d},{3:d},'{4}','{5}','{6}');
+            INSERT INTO {0}(ID, threadID, userID, content, date) VALUES({1:d},{2:d},{3:d},'{4}','{5}');
         """.format(POST_TABLE,
                    ID,
                    threadID, 
                    userID, 
-                   esc(title), 
                    esc(content), 
                    date)
             )
         
+    def insert_users_csv(self, csv_file = "users.csv"):
+        self.cursor.execute("""
+        LOAD DATA LOCAL INFILE '{0}' INTO TABLE {1} 
+            fields terminated by ','  
+            enclosed by '' 
+            lines terminated by '\n'  
+            (ID, userName);
+        """.format(csv_file, USER_TABLE))
+        self.commit()
+
+    def insert_threads_csv(self, csv_file = "threads.csv"):
+        self.cursor.execute("""
+        LOAD DATA LOCAL INFILE '{0}' INTO TABLE {1} 
+            fields terminated by ','  
+            enclosed by '' 
+            lines terminated by '\n'  
+            (ID, title);
+        """.format(csv_file, THREAD_TABLE))
+        self.commit()
+        
+    def insert_posts_csv(self, csv_file = "posts.csv"):
+        self.cursor.execute("""
+        LOAD DATA LOCAL INFILE '{0}' INTO TABLE {1} 
+            fields terminated by ','  
+            enclosed by '' 
+            lines terminated by '\n'  
+            (ID, threadID, userID, content, date);
+        """.format(csv_file, POST_TABLE))
+        self.commit()
+         
     def TEST(self):
         print "Insert Test Data"
         self.reset_tables()
         
         self.insert_user(ID = 1, name = "test user")
         self.insert_thread(ID = 0, title = "test thread")
-        self.insert_post(ID = 0, threadID = 0, userID = 0, title = "test post", content = "test content", date = "2013-01-01")
+        self.insert_post(ID = 0, threadID = 0, userID = 0, content = "test content", date = "2013-01-01")
         self.con.commit()
+        
+        print "Insert Test Data"
+        self.reset_tables()
+        
+        self.insert_users_csv()
+        self.insert_threads_csv()
+        self.insert_posts_csv()
+        
+        
         
 def esc(s):
     return db.escape_string(s.encode('ascii','ignore'))

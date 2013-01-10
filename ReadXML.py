@@ -13,6 +13,7 @@ def get_users(file = USER_XML_file):
         user_rec["ID"] = int(row.get("Id"))
         user_rec["name"] = row.get("DisplayName")
         
+        if None in user_rec.values(): continue
         yield user_rec
 
 
@@ -24,7 +25,6 @@ def get_posts(file = POST_XML_file):
 
         post_rec["ID"] =      int(row.get("Id"))
         post_rec["userID"] =  row.get("OwnerUserId")
-        post_rec["title"] =   row.get("Title")
         post_rec["content"] = row.get("Body")
         post_rec["date"] =    row.get("CreationDate")
 
@@ -34,6 +34,10 @@ def get_posts(file = POST_XML_file):
         elif row.get("PostTypeId") == "2":
             # Post is an answer
             post_rec["threadID"] = row.get("ParentId")
+        else:
+            post_rec["threadID"] = "0"
+
+        if None in post_rec.values(): continue
             
         yield post_rec
 
@@ -45,9 +49,10 @@ def get_threads(file = POST_XML_file):
         if not row.get("PostTypeId") == "1": continue 
 
         thread_rec = {}
-        thread_rec["ID"] =      int(row.get("Id")) 
-        thread_rec["title"] =   row.get("Title")
+        thread_rec["ID"] =    int(row.get("Id")) 
+        thread_rec["title"] = row.get("Title") if row.get("Title") else "" 
             
+        if None in thread_rec.values(): continue
         yield thread_rec
 
 
@@ -72,4 +77,6 @@ def TEST():
         
         sign = raw_input()
         if sign == "x": break
+        
+if __name__ == "__main__": TEST()
         
