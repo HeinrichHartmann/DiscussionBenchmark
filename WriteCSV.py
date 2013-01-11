@@ -129,30 +129,3 @@ def esc(s = ""):
     return s.encode('ascii','ignore')
 
 if __name__ == "__main__": main()
-
-
-
-def get_user_dict():
-    lookup = {}
-    counter = 1
-    for user in get_users():
-        lookup[user["ID"]] = counter
-        counter += 1
-    return lookup
-
-def get_thread_dict():
-    lookup = {}
-    counter = 1
-    for thread in get_threads():
-        lookup[thread["ID"]] = counter
-        counter += 1
-    return lookup
-
-
-def get_post_dict():
-    lookup = {}
-    counter = 1
-    for post in get_posts():
-        lookup[post["ID"]] = counter
-        counter += 1
-    return lookup

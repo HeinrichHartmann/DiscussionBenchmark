@@ -154,20 +154,29 @@ class MySQLControls:
     
     def retrieve_thread(self, threadID):
         self.cursor.execute("""
-        SELECT * FROM `{0}`,`{1}`,`{2}` WHERE (
-             `{0}`.`ID` = `{1}`.`threadID` AND
-             `{1}`.`userID` = `{2}`.`ID` AND
-             
-             `threads`.`ID` = {3}
+        SELECT
+            `{tt}`.title, 
+            `{pt}`.content, 
+            `{pt}`.date,
+            `{ut}`.userName
+        FROM `{tt}`,`{pt}`,`{ut}` 
+        WHERE (
+             `{pt}`.`threadID` = `{tt}`.`ID` AND
+             `{pt}`.`userID` = `{ut}`.`ID`    AND             
+             `{tt}`.`ID` = {0}
         );
-        """.format(THREAD_TABLE,POST_TABLE,USER_TABLE,threadID))
+        """.format(threadID, tt=THREAD_TABLE,pt=POST_TABLE,ut=USER_TABLE))
         return self.cursor.fetchall()
     
     def TEST(self):
+        print "Retrive Thread 1"
+        for i,row in enumerate(self.retrieve_thread(2)):
+            print i,":", row
+        
         print "Insert Test Data"
-        self.insert_user(ID = 1, name = "test user")
-        self.insert_thread(ID = 0, title = "test thread")
-        self.insert_post(ID = 0, threadID = 0, userID = 0, content = "test content", date = "2013-01-01")
+        self.insert_user(ID = -1, name = "test user")
+        self.insert_thread(ID = -1, title = "test thread")
+        self.insert_post(ID = -1, threadID = 0, userID = 0, content = "test content", date = "2013-01-01")
         self.con.commit()
 
     def populate(self):        
