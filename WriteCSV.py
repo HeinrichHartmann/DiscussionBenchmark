@@ -4,17 +4,20 @@ import re
 from ReadXML import get_threads, get_posts, get_users
 
 def main():
-    print "writing users.cvs"
-    write_users()
-    print "writing threads.cvs"
-    write_threads()
-    print "writing posts.cvs"
-    write_posts()
+    print "writing users.csv"
+    #write_users()
+    print "writing threads.csv"
+    #write_threads()
+    print "writing posts.csv"
+    #write_posts()
 
-    print "writing nodes.cvs"
+    print "writing nodes.csv"
     write_nodes()
-    print "writing relations.cvs"
+    print "writing relations.csv"
     write_relations()
+    print "writing thread_index.csv"
+    write_thread_index()
+
 
 def write_users(file_name = "users.csv"):
     with open(file_name, 'wb') as f:
@@ -36,15 +39,15 @@ def write_threads(file_name = "threads.csv"):
 def write_posts(file_name = "posts.csv"):
     with open(file_name, 'wb') as f:
         writer = csv.writer(f)
-        writer.writerows((
-             [post["ID"],
-             post["threadID"], 
-             post["userID"],
-             esc(post["content"]),
-             post["date"].replace("T"," ")[0:19]
-             ]
-             for post in get_posts())
-             )
+        writer.writerows(([
+            post["ID"],
+            post["threadID"], 
+            post["userID"],
+            esc(post["content"]),
+            post["date"].replace("T"," ")[0:19]
+            ]
+            for post in get_posts())
+            )
         
 from collections import defaultdict
 
@@ -104,23 +107,31 @@ def write_relations(file_name = "relations.csv"):
             # edge from post to user
             try:
                 writer.writerow([ 
-                                 post_row[post["ID"]],
-                                 user_row[post["userID"]],
-                                 "WRITTEN_BY"
-                              ])
+                     post_row[post["ID"]],
+                     user_row[post["userID"]],
+                     "WRITTEN_BY"
+                ])
             except KeyError:
                 print "Row not found for user", post["userID"]
                 continue
             
             # edge from thread to post
             try:
-                writer.writerow([ thread_row[post["threadID"]], 
-                              post_row[post["ID"]],
-                              "CONTAINS"
-                              ])
+                writer.writerow([ 
+                    thread_row[post["threadID"]], 
+                    post_row[post["ID"]],
+                    "CONTAINS"
+                ])
             except KeyError:
                 print "Row not found for thread", post["threadID"]
                 continue
+
+def write_thread_index(file_name = "thread_index.csv"):
+    with open(file_name,'wb') as f:
+        writer = csv.writer(f, delimiter = "\t")
+        writer.writerow(["id","key","value"])
+        for threadID, row in thread_row.items():
+            writer.writerow([row, "ID", threadID])
 
 
 def esc(s = ""):

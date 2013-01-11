@@ -10,12 +10,16 @@ POST_XML_file = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark
 def get_users(file = USER_XML_file):
     xml = etree.parse(open(file))
     
+    yield {"ID":-1, "name": "Annonymous"}
+    
     for row in xml.findall("row"):
         user_rec = {}
 
         user_rec["ID"] = int(row.get("Id"))
         user_rec["name"] = row.get("DisplayName")
-        if None in user_rec.values(): continue
+        if None in user_rec.values(): 
+            print "skipping user", user_rec["ID"]
+            continue
 
         yield user_rec
 
@@ -27,7 +31,7 @@ def get_posts(file = POST_XML_file):
         post_rec = {}
 
         post_rec["ID"] =      int(row.get("Id"))
-        post_rec["userID"] =  int(row.get("OwnerUserId")) if row.get("OwnerUserId") else None
+        post_rec["userID"] =  int(row.get("OwnerUserId")) if row.get("OwnerUserId") else -1
         post_rec["content"] = row.get("Body")
         post_rec["date"] =    row.get("CreationDate")
 
@@ -40,7 +44,9 @@ def get_posts(file = POST_XML_file):
         else:
             post_rec["threadID"] = 0
 
-        if None in post_rec.values(): continue
+        if None in post_rec.values():
+            print "skipping post", post_rec["ID"] 
+            continue
         
         yield post_rec
 
@@ -55,7 +61,10 @@ def get_threads(file = POST_XML_file):
         thread_rec["ID"] =    int(row.get("Id")) 
         thread_rec["title"] = row.get("Title") if row.get("Title") else ""
         
-        if None in thread_rec.values(): continue
+        if None in thread_rec.values():
+            print "skipping thread", thread_rec["ID"] 
+            continue
+        
         yield thread_rec
 
 
