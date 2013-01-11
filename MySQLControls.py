@@ -43,16 +43,14 @@ class MySQLControls:
             self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS `%s` (
                 `ID` int(11),
-                `userName` text,
-                PRIMARY KEY (`ID`)
+                `userName` text
             );""" % USER_TABLE)
 
             self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS `%s` (
                   `ID` int(11),
-                  `title` text,
-                  PRIMARY KEY (`ID`)
-                );""" % THREAD_TABLE)
+                  `title` text
+            );""" % THREAD_TABLE)
 
             self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS `%s` (
@@ -60,8 +58,7 @@ class MySQLControls:
                   `threadID` int(11),
                   `userID` int(11),
                   `content` text,
-                  `date` datetime,
-                  PRIMARY KEY (`ID`)
+                  `date` datetime
                 );""" % POST_TABLE)
 
         except db.Error, e:
@@ -69,11 +66,9 @@ class MySQLControls:
             raise Exception("error creating tables")
 
     def reset_tables(self):
-        print "Deleting Tables"
         self.drop_tables()
         self.con.commit()
         
-        print "Creating Tables"
         self.create_tables()
         self.con.commit()
             
@@ -144,23 +139,49 @@ class MySQLControls:
             (ID, threadID, userID, content, date);
         """.format(csv_file, POST_TABLE))
         self.commit()
-         
+    
+    
+    def create_indices(self):
+        self.cursor.execute("""
+        CREATE INDEX thread_id ON {0}(ID);
+        
+        CREATE INDEX post_id ON {1}(ID);
+        CREATE INDEX post_user ON {1}(userID);
+        CREATE INDEX post_thread ON {1}(threadID,date DESC);
+        
+        CREATE INDEX user_id ON {2}(ID);
+        """.format(THREAD_TABLE, POST_TABLE, USER_TABLE))
+    
+    def retrieve_thread(self, threadID):
+        self.cursor.execute("""
+        SELECT * FROM `{0}`,`{1}`,`{2}` WHERE (
+             `{0}`.`ID` = `{1}`.`threadID` AND
+             `{1}`.`userID` = `{2}`.`ID` AND
+             
+             `threads`.`ID` = {3}
+        );
+        """.format(THREAD_TABLE,POST_TABLE,USER_TABLE,threadID))
+        return self.cursor.fetchall()
+    
     def TEST(self):
         print "Insert Test Data"
-        self.reset_tables()
-        
         self.insert_user(ID = 1, name = "test user")
         self.insert_thread(ID = 0, title = "test thread")
         self.insert_post(ID = 0, threadID = 0, userID = 0, content = "test content", date = "2013-01-01")
         self.con.commit()
-        
-        print "Insert Test Data"
+
+    def populate(self):        
+        print "Populate Database"
         self.reset_tables()
         
+        print "* Users"
         self.insert_users_csv()
+        print "* Threads"
         self.insert_threads_csv()
+        print "* Posts"
         self.insert_posts_csv()
-        
+        print "Writing Indices"
+        self.create_indices()
         
         
 def esc(s):
