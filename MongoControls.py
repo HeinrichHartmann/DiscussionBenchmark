@@ -1,6 +1,6 @@
 import pymongo
 
-from ReadXML import get_users, get_complete_threads
+from ReadXML import XMLReader
 
 def main():
     DBO = MongoControls()
@@ -26,7 +26,11 @@ class MongoControls:
         self.db  = self.con[self.DB_NAME]
         self.tc  = self.db[self.COL_THREAD]
         self.uc  = self.db[self.COL_USER]
+        self.XRO  = XMLReader()
         
+    def close(self):
+        pass
+    
     def reset(self):
         self.tc.drop()
         self.uc.drop()
@@ -50,7 +54,7 @@ class MongoControls:
     
     def fill_users(self, batch_size = 5000):
         buffer = []
-        for user in get_users():
+        for user in self.XRO.get_users():
             buffer.append(user)
             
             if len(buffer) == batch_size:
@@ -62,7 +66,7 @@ class MongoControls:
 
     def fill_threads(self, batch_size = 5000):
         buffer = []
-        for thread in get_complete_threads():
+        for thread in self.XRO.get_complete_threads():
             buffer.append(thread)
             
             if len(buffer) == batch_size:
@@ -75,7 +79,12 @@ class MongoControls:
     def create_indices(self):
         self.uc.create_index("ID")
         self.tc.create_index("ID")
-    
+        
+    def import_XML(self, XRO):
+        self.XRO = XRO
+        self.fill_threads()
+        self.fill_users()
+
     
     def TEST(self):
         print "Creating test documents"

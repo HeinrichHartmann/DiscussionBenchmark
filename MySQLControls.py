@@ -1,5 +1,8 @@
 import MySQLdb as db
 
+from ReadXML import XMLReader
+from WriteCSV import CSVWriter
+
 USER_TABLE = "users"
 THREAD_TABLE = "threads"
 POST_TABLE = "posts"
@@ -66,13 +69,15 @@ class MySQLControls:
             print "error creating tables", e
             raise Exception("error creating tables")
 
-    def reset_tables(self):
+    def reset(self):
+        self.reset_cursor()
         self.drop_tables()
-        self.con.commit()
-        
         self.create_tables()
-        self.con.commit()
-            
+    
+    def reset_cursor(self):
+        self.cursor.close()
+        self.cursor = self.con.cursor()        
+
     def insert_user(self, ID, name):
         if ID == None: 
             ID = 0
@@ -110,6 +115,7 @@ class MySQLControls:
                    esc(content), 
                    date)
             )
+        
         
     def insert_users_csv(self, csv_file = "users.csv"):
         self.cursor.execute("""
@@ -153,7 +159,7 @@ class MySQLControls:
         CREATE INDEX user_id ON {2}(ID);
         """.format(THREAD_TABLE, POST_TABLE, USER_TABLE))
     
-    def retrieve_thread(self, threadID):
+    def get_thread(self, threadID):
         self.cursor.execute("""
         SELECT
             `{tt}`.title, 
@@ -170,29 +176,37 @@ class MySQLControls:
         return self.cursor.fetchall()
     
     def TEST(self):
-        print "Retrive Thread 1"
-        for i,row in enumerate(self.retrieve_thread(2)):
-            print i,":", row
         
         print "Insert Test Data"
         self.insert_user(ID = -1, name = "test user")
         self.insert_thread(ID = -1, title = "test thread")
-        self.insert_post(ID = -1, threadID = 0, userID = 0, content = "test content", date = "2013-01-01")
+        self.insert_post(ID = -1, threadID = -1, userID = -1, content = "test content", date = "2013-01-01")
         self.con.commit()
-
-    def populate(self):        
-        print "Populate Database"
-        self.reset_tables()
         
+        for i,row in enumerate(self.get_thread(-1)):
+            print i,":", row
+
+    def import_XML(self,XRO):
+        name = XRO.name
+        self.XRO = XRO
+        
+        CWO = CSVWriter(XRO)
         print "* Users"
-        self.insert_users_csv()
+        CWO.write_users(name + "users.csv")        
+        self.insert_users_csv(name + "users.csv")
+        
         print "* Threads"
-        self.insert_threads_csv()
+        CWO.write_threads(name + "threads.csv")
+        self.insert_threads_csv(name + "threads.csv")
+        
         print "* Posts"
-        self.insert_posts_csv()
+        CWO.write_posts(name + "posts.csv")
+        self.insert_posts_csv(name + "posts.csv")
+
         print "Writing Indices"
         self.create_indices()
         
+        self.reset_cursor()
         
 def esc(s):
     return db.escape_string(s.encode('ascii','ignore'))

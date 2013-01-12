@@ -25,7 +25,7 @@ def main():
 class CSVWriter:
     
     def __init__(self, XMLReaderObject = XMLReader() ):
-        self.XR = XMLReaderObject
+        self.XRO = XMLReaderObject
     
 
     
@@ -33,7 +33,7 @@ class CSVWriter:
         with open(out_file, 'wb') as f:
             writer = csv.writer(f)
             writer.writerows(
-                ([user["ID"], esc(user["name"])] for user in self.XR.get_users())              
+                ([user["ID"], esc(user["name"])] for user in self.XRO.get_users())              
                 )
             
     def write_threads(self, out_file =  "threads.csv"):
@@ -42,7 +42,7 @@ class CSVWriter:
             writer.writerows( 
                 (
                  [ thread["ID"], esc(thread["title"]) ]
-                 for thread in self.XR.get_threads())
+                 for thread in self.XRO.get_threads())
                  )
     
     
@@ -56,7 +56,7 @@ class CSVWriter:
                 esc(post["content"]),
                 post["date"].replace("T"," ")[0:19]
                 ]
-                for post in self.XR.get_posts())
+                for post in self.XRO.get_posts())
                 )
 
 
@@ -72,7 +72,7 @@ class CSVWriter:
             # first line lists all properties
             writer.writerow(["type", "ID", "name", "title", "content" , "date"])
             row_number = 1
-            for user in self.XR.get_users():
+            for user in self.XRO.get_users():
                 writer.writerow(
                 # ["type", "ID"      , "name"           , "title", "content", "date"]
                   ["user", user["ID"], esc(user["name"]), ""     , ""       , ""]
@@ -81,7 +81,7 @@ class CSVWriter:
                 self.user_row[user["ID"]] = row_number
                 row_number += 1            
                 
-            for thread in self.XR.get_threads():
+            for thread in self.XRO.get_threads():
                 writer.writerow(
                 # ["type"  , "ID"        , "name", "title"             , "content", "date"]
                   ["thread", thread["ID"], ""    , esc(thread["title"]), ""       , ""    ]
@@ -90,7 +90,7 @@ class CSVWriter:
                 self.thread_row[thread["ID"]] = row_number
                 row_number += 1
             
-            for post in self.XR.get_posts():
+            for post in self.XRO.get_posts():
                 writer.writerow(
                 # ["type", "ID"      , "name", "title", "content"           , "date"]
                   ["post", post["ID"], ""    , ""     , esc(post["content"]),post["date"]]
@@ -108,7 +108,7 @@ class CSVWriter:
             writer = csv.writer(f, delimiter = "\t")
             writer.writerow(["start","end","type"])
             
-            for post in self.XR.get_posts():
+            for post in self.XRO.get_posts():
                 # edge from post to user
                 try:
                     writer.writerow([ 

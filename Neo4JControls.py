@@ -6,8 +6,7 @@ from urlparse import urljoin
 
 class Neo4JControls:
     info = "Neo4J"
-    def __init__(self, url = "http://localhost:7474/"):
-        
+    def __init__(self, url = "http://localhost:7474/"):         
         self.url = urljoin(url,"db/data/")
 
     def post(self, url = None, data = {}):
@@ -53,6 +52,15 @@ class Neo4JControls:
                                }
                          )["self"] 
 
+    def import_XML(self, XRO):
+        self.XRO = XRO
+        pass
+    
+    def reset(self):
+        pass
+    
+    def close(self):
+        pass
 
 def TEST():
     DBO = Neo4JControls()

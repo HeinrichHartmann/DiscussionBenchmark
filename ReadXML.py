@@ -17,173 +17,196 @@ def main():
 class XMLReader:
     def __init__(self, 
                 USER_XML = USER_XML_default,
-                POST_XML = POST_XML_default
+                POST_XML = POST_XML_default,
+                name = ""
                 ):
         self.USER_XML = USER_XML
         self.POST_XML = POST_XML 
+        self.name = name
     
+    @classmethod
+    def from_dataset(cls, DATASET):
+        return XMLReader(
+           USER_XML = DATASET["USER_XML"],
+           POST_XML = DATASET["POST_XML"],
+           name =     DATASET["name"]
+                   )
+    
+    
+    ### Get/Set Users ###
+    user_list = None
+    user_table = None
     user_count = None
-    post_count = None
-    thread_count = None
-    
-    #
-    # Create Generators
-    #
-    def get_users(self):
-        # yields user recs
-        # side: sets user_count
+    def set_users(self):
         fh = open(self.USER_XML)
         xml = etree.parse(fh)
         
-        yield {"ID":-1, "name": "Annonymous"}
+        # Create user for annonymous posts
+        self.user_list = [ {"ID":-1, "name": "Annonymous"} ]
+        self.user_table = {}
 
         count = 0
         
         for row in xml.findall("row"):
-            user_rec = {}
+            user = {}
     
-            user_rec["ID"] = int(row.get("Id"))
-            user_rec["name"] = row.get("DisplayName")
-            if None in user_rec.values(): 
-                print "skipping user", user_rec["ID"]
+            user["ID"] = int(row.get("Id"))
+            user["name"] = row.get("DisplayName")
+            
+            if None in user.values(): 
+                print "skipping user", user["ID"]
                 continue
     
-            yield user_rec
+            self.user_list.append(user)
+            self.user_table[user["ID"]] = user
             count += 1
-            
+                    
+        xml = None
         fh.close()
         self.user_count = count 
+        
+    def get_users(self):
+        if not self.user_list: self.set_users()
+        return self.user_list
+
+    def get_user_table(self):
+        if not self.user_table: self.set_users()
+        return self.user_table
     
-    def get_posts(self):
+    def get_user_count(self):
+        if not self.user_count: self.set_users()
+        return self.user_count
+    
+    ### Get/Set Post ###
+    post_list  = None
+    post_table = None
+    post_count = None
+    tp_table   = None
+    def set_posts(self):
         fh = open(self.POST_XML)
         xml = etree.parse(fh)
         
+        self.post_list = []
+        self.post_table = {}
+        self.tp_table   = defaultdict(list)
+        
         count = 0
         for row in xml.findall("row"):
-            post_rec = {}
+            post = {}
     
-            post_rec["ID"] =      int(row.get("Id"))
-            post_rec["userID"] =  int(row.get("OwnerUserId")) if row.get("OwnerUserId") else -1
-            post_rec["content"] = row.get("Body")
-            post_rec["date"] =    row.get("CreationDate")
+            post["ID"] =      int(row.get("Id"))
+            post["userID"] =  int(row.get("OwnerUserId")) if row.get("OwnerUserId") else -1
+            post["content"] = row.get("Body")
+            post["date"] =    row.get("CreationDate")
     
             if row.get("PostTypeId") == "1": 
                 # If post is a question, then ThreadID = PostID
-                post_rec["threadID"] = int(post_rec["ID"])
+                post["threadID"] = int(post["ID"])
             elif row.get("PostTypeId") == "2":
                 # Post is an answer
-                post_rec["threadID"] = int(row.get("ParentId"))
+                post["threadID"] = int(row.get("ParentId"))
             else:
-                post_rec["threadID"] = 0
+                post["threadID"] = 0
     
-            if None in post_rec.values():
-                print "skipping post", post_rec["ID"] 
+            if None in post.values():
+                print "skipping post", post["ID"] 
                 continue
             
-            yield post_rec
+            self.post_list.append(post)
+            self.post_table[post["ID"]] = post
+            self.tp_table[post["threadID"]].append(post)
+            
             count +=1
+            
         self.post_count = count
+        xml = None
         fh.close()
+        
+    def get_posts(self):
+        if not self.post_list: self.set_posts()
+        return self.post_list
+
+    def get_post_table(self):
+        if not self.post_table: self.set_posts()
+        return self.post_table
     
-    def get_threads(self):
+    def get_tp_table(self):
+        if not self.tp_table: self.set_posts()
+        return self.tp_table
+    
+    def get_post_count(self):
+        if not self.post_count: self.set_posts()
+        return self.post_count
+
+
+    ### Get/Set Threads ###
+    thread_count = None
+    thread_table = None
+    thread_list = None
+    def set_threads(self):
         fh = open(self.POST_XML)
         xml = etree.parse(fh)
-    
+        
+        self.thread_list = []
+        self.thread_table = {}
+        
         count = 0
         for row in xml.findall("row"):
             # skip if not a question post
             if not row.get("PostTypeId") == "1": continue 
     
-            thread_rec = {}
-            thread_rec["ID"] =    int(row.get("Id")) 
-            thread_rec["title"] = row.get("Title") if row.get("Title") else ""
+            thread = {}
+            thread["ID"] =    int(row.get("Id")) 
+            thread["title"] = row.get("Title") if row.get("Title") else ""
             
-            if None in thread_rec.values():
-                print "skipping thread", thread_rec["ID"] 
+            if None in thread.values():
+                print "skipping thread", thread["ID"] 
                 continue
             
-            yield thread_rec
+            self.thread_list.append(thread)
+            self.thread_table[thread["ID"]] = thread
             count += 1
+        
+        xml = None
         fh.close()
         self.thread_count = count
         
-    #
-    # Create hash tables
-    #
-    thread_table = None
+    def get_threads(self):
+        if not self.thread_list: self.set_threads()
+        return self.thread_list
+
     def get_thread_table(self):
-        if self.thread_table: return self.thread_table
-        table = {}
-        for thread in self.get_threads():
-            table[thread["ID"]] = thread
-            
-        self.thread_table = table
-        return table
-
-    post_table = None   
-    def get_post_table(self):
-        if self.post_table: return self.post_table
-        table = {}
-        for post in self.get_posts():
-            table[post["ID"]] = post
-            
-        self.post_table = table
-        return table
+        if not self.thread_table: self.set_threads()
+        return self.thread_table
     
-    user_table = None
-    def get_user_table(self):
-        if self.user_table: return self.user_table
-        table = {}
-        for user in self.get_users():
-            table[user["ID"]] = user
-            
-        self.user_table = table
-        return table
+    def get_thread_count(self):
+        if not self.thread_count: self.set_threads()
+        return self.thread_count
 
-    tp_table = None
-    def get_tp_table(self):
-        # creat thread-post-table tp:
-        # tp["threadID"] = [ post1, post2, ... ]
-        if self.tp_table: return self.tp_table
-        
-        table = defaultdict(list)
-        for post in self.get_posts():
-            table[post["threadID"]].append(post)
 
-        self.tp_table = table    
-        return table
-    
+
     #
-    # Combine threads
+    # Derived methods
     #
-        
     def get_complete_threads(self):
+        # returns thread with post table
         tp_table = self.get_tp_table()
         
         for thread in self.get_threads():
             thread["posts"] = tp_table[thread["ID"]]
-
             yield thread
+
+
+    def get_user_ids(self):
+        return self.get_user_table().keys()
+
+    def get_thread_ids(self):
+        return self.get_thread_table().keys()
+
 
     #
     # Statistics
-    # 
-    def get_post_count(self):
-        if self.post_count: return self.post_count
-        for rec in self.get_posts():
-            pass
-        return self.post_count
-    def get_thread_count(self):
-        if self.thread_count: return self.thread_count
-        for rec in self.get_threads():
-            pass
-        return self.thread_count
-        
-    def get_user_count(self):
-        if self.user_count: return self.user_count
-        for rec in self.get_users():
-            pass
-        return self.user_count
+    #
     
     def get_stats(self):
         return {
