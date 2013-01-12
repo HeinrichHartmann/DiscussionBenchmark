@@ -1,85 +1,123 @@
-import requests
-import json
-from urlparse import urljoin
-# See http://stackoverflow.com/questions/10893374/python-confusions-with-urljoin
-# for usage pitfalls
+from neo4jrestclient.client import GraphDatabase
+# Docs https://neo4j-rest-client.readthedocs.org/en/latest/info.html#getting-started
+
+from ReadXML import XMLReader
+from WriteCSV import CSVWriter
+from subprocess import call
+
+NEO4J_BIN = "/home/heinrich/Programs/neo4j-community-1.8.1/bin/neo4j"
+BATCH_IMPORT_JAR = "/home/heinrich/Programs/neo4j-batch-import/target/batch-import-jar-with-dependencies.jar"
+DB_FOLDER = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/Neo4J"
+LOG_FILE = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/Neo4J.log"
+
+# WARNING!
+# Make sure server is configuered to use DB_FOLDER!!
+# edit: neo4j-community-1.8.1/conf/neo4j-server.properties
 
 class Neo4JControls:
     info = "Neo4J"
-    def __init__(self, url = "http://localhost:7474/"):         
-        self.url = urljoin(url,"db/data/")
+    def __init__(self, url = "http://localhost:7474/db/data/"):
+        self.start_server()
+        self.db = GraphDatabase(url)         
 
-    def post(self, url = None, data = {}):
-        if url == None:
-            url = self.url
+    #
+    # Server contoling
+    #
+    def reset(self):
+        print "Reset Neo4J db"
+        #self.stop_server()
+        call("rm -R " + DB_FOLDER, shell = True)
+        #self.start_server()
 
-        r = requests.post(url, json.dumps(data))
+    def close(self):
+        self.stop_server()
 
-        if r.ok == True:
-            return json.loads(r.content)
-        else:
-            print "ERROR in POST request to", url, "with", data
-            print r
-            print dir(r)
-            raise Exception("POST Request Error.")
+    def stop_server(self):
+        call(NEO4J_BIN + " stop >> " + LOG_FILE, shell=True)
+    
+    def start_server(self):
+        call(NEO4J_BIN + " start >> " + LOG_FILE, shell=True)
 
-    def get(self, url = None):
-        if url == None:
-            url = self.url
+    def server_status(self):
+        call(NEO4J_BIN + " status", shell=True)
 
-        r = requests.get(url)
-        if r.ok == True:
-            return json.loads(r.content)
-        else:
-            raise Exception("GET Request Error.")
 
+    #
+    # Bulk Import Methods
+    #    
+    def bulk_import(self, 
+        nodes_csv     = "nodes.csv",
+        relations_csv = "relations.csv",
+        index_csv     = "thread_index.csv",
+        index_name    = "threadID",
+        db_folder     = DB_FOLDER,
+        jar           = BATCH_IMPORT_JAR
+        ):
+        #self.stop_server()       
+        EXEC = "java -server -Xmx4G -jar {jar} {db_folder} {nodes_csv} {relations_csv} node_index {index_name} exact {index_csv}"
+        call(EXEC.format(**locals()), shell = True)
+        #self.start_server()
+        
+    def import_XML(self, XRO):
+        self.XRO = XRO
+        name = XRO.name
+        
+        CWO = CSVWriter(XRO)
+
+        print "* Wirte CSV"
+        CWO.write_nodes(name + "nodes.csv")
+        CWO.write_relations(name + "relations.csv")
+        CWO.write_thread_index(name + "thread_index.csv")
+
+        print "* Writing Neo4J"
+        self.bulk_import(
+             nodes_csv = name + "nodes.csv", 
+             relations_csv = name + "relations.csv", 
+             index_csv = name + "thread_index.csv"
+             )    
+
+    #
+    # Access methods
+    #
+    index = None
+    def get_index(self):
+        if self.index: return self.index
+        self.index = self.db.node.indexes.get("threadID")
+        return self.index
+        
+    def get_thread(self, ID):
+        index = self.get_index()
+        for node in index["ID"][ID]:
+            print node.items()
+
+        
     def create_node(self, data = {}):
         # creates node with properties data
         # returns url of created node
 
-        return self.post(url=urljoin(self.url,"node/"), data=data)["self"] 
+        with self.db.transaction:
+            node = self.db.node(data)
 
-    def get_properties(self, url):
-        # works for nodes and relationships
-        return self.get(url + "/properties")
-
+        return node
+    
     def create_relation(self, source, target, relation_type = "", data = {}):
-        return self.post(url = source + "/relationships",
-                         data={
-                               "to":   target,
-                               "type": relation_type,
-                               "data": data
-                               }
-                         )["self"] 
-
-    def import_XML(self, XRO):
-        self.XRO = XRO
-        pass
-    
-    def reset(self):
-        pass
-    
-    def close(self):
-        pass
+        rel = self.db.relationships.create(source, relation_type, target)
+        
+        for k,v in data.items():
+            rel[k] = v
+        
+        return rel
 
 def TEST():
-    DBO = Neo4JControls()
-    
-    print "Creating Node"    
-    node = DBO.create_node({'testKey':'testValue'})
-    print "Node", node, "created"
-    
-    print "List Node Properties"
-    print DBO.get_properties(node)
-    
+    DBO = Neo4JControls()    
+    DBO.reset()
+    DBO.import_XML(XMLReader())
 
-    print "Creating test relation"
-    node2 = DBO.create_node({'testKey':'target'})
-    rel = DBO.create_relation(source = node, target=node2, 
-                              relation_type="TESTTYPE", 
-                              data={"relKey": "relValue"} )
-    print "Relation", rel, "created"
-    print DBO.get_properties(rel)
+    DBO.server_status()
+        
+    DBO.get_thread(1)
+    DBO.get_thread(2)
+    DBO.get_thread(3)
 
 if __name__ == "__main__":
     TEST()

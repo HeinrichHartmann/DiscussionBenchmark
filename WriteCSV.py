@@ -134,9 +134,9 @@ class CSVWriter:
     def write_thread_index(self,out_file = "thread_index.csv"):
         with open(out_file,'wb') as f:
             writer = csv.writer(f, delimiter = "\t")
-            writer.writerow(["id","key","value"])
+            writer.writerow(["id","ID"])
             for threadID, row in self.thread_row.items():
-                writer.writerow([row, "ID", threadID])
+                writer.writerow([row, threadID])
     
 
 def esc(s = ""):
