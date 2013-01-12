@@ -7,6 +7,10 @@ from pprint import pprint as PRINT
 USER_XML_file = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Super User/users.xml"
 POST_XML_file = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Super User/posts.xml"
 
+#
+# Create Generators
+#
+
 def get_users(file = USER_XML_file):
     xml = etree.parse(open(file))
     
@@ -67,6 +71,55 @@ def get_threads(file = POST_XML_file):
         
         yield thread_rec
 
+#
+# Create hash tables
+#
+
+def get_thread_table(file_name = POST_XML_file):
+    table = {}
+    for thread in get_threads(file_name):
+        table[thread["ID"]] = thread
+    return table
+
+def get_post_table(file_name = POST_XML_file):
+    table = {}
+    for post in get_posts(file_name):
+        table[post["ID"]] = post
+    return table
+
+def get_user_table(file_name = USER_XML_file):
+    table = {}
+    for user in get_users(file_name):
+        table[user["ID"]] = user
+    return table
+
+#
+# Combine threads
+#
+from collections import defaultdict
+def get_tp_table(file_name = POST_XML_file):
+    # creat thread-post-table tp:
+    # tp["threadID"] = [ post1, post2, ... ]
+    table = defaultdict(list)
+    for post in get_posts(file_name):
+        table[post["threadID"]].append(post)
+
+    return table
+
+tp_table = None
+def get_complete_threads(file_name = POST_XML_file):
+    global tp_table
+    if tp_table == None:
+        print "Caching thread/posts"
+        tp_table = get_tp_table(file_name)
+    
+    for thread in get_threads(file_name):
+        thread["posts"] = tp_table[thread["ID"]]
+        yield thread
+
+#
+# Tests
+#
 
 def TEST():
     print "=== Printing Users ===" 
