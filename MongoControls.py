@@ -3,17 +3,19 @@ import pymongo
 from ReadXML import get_users, get_complete_threads
 
 def main():
-    DBO = MongoControl()
+    DBO = MongoControls()
     
     DBO.TEST()
 
-class MongoControl:
+class MongoControls:
     # We follow the tutorial
     # http://api.mongodb.org/python/2.4.1/tutorial.html
     
     # Remark:
     # documents are members of collections
     # collections are members of databases
+
+    info = "Mongo"
 
     DB_NAME = "discuss"
     COL_THREAD = "threads"
@@ -51,7 +53,7 @@ class MongoControl:
         for user in get_users():
             buffer.append(user)
             
-            if len(buffer) >= batch_size:
+            if len(buffer) == batch_size:
                 print "Writing user collection", batch_size
                 self.insert_user(buffer)
                 buffer = []
@@ -63,12 +65,17 @@ class MongoControl:
         for thread in get_complete_threads():
             buffer.append(thread)
             
-            if len(buffer) >= batch_size:
+            if len(buffer) == batch_size:
                 print "Writing thread collection", batch_size
                 self.insert_thread(buffer)
                 buffer = []
 
         self.insert_thread(buffer)
+    
+    def create_indices(self):
+        self.uc.create_index("ID")
+        self.tc.create_index("ID")
+    
     
     def TEST(self):
         print "Creating test documents"
@@ -81,8 +88,11 @@ class MongoControl:
         self.reset()
 
         print "Populating MongoDB"
+        self.fill_users(10000)
         self.fill_threads()
-        self.fill_users()
+        
+        print "Creating Indices"
+        self.create_indices()
         
         
 if __name__ == "__main__": 

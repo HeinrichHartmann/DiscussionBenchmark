@@ -1,138 +1,143 @@
 import csv
 import re
 
-from ReadXML import get_threads, get_posts, get_users
+from ReadXML import XMLReader
 
 def main():
+    XRO = XMLReader()
+    
+    CWO = CSVWriter(XRO)
+    
     print "writing users.csv"
-    #write_users()
+    CWO.write_users()
     print "writing threads.csv"
-    #write_threads()
+    CWO.write_threads()
     print "writing posts.csv"
-    #write_posts()
+    CWO.write_posts()
 
     print "writing nodes.csv"
-    write_nodes()
+    CWO.write_nodes()
     print "writing relations.csv"
-    write_relations()
+    CWO.write_relations()
     print "writing thread_index.csv"
-    write_thread_index()
+    CWO.write_thread_index()
 
-
-def write_users(file_name = "users.csv"):
-    with open(file_name, 'wb') as f:
-        writer = csv.writer(f)
-        writer.writerows(
-            ([user["ID"], esc(user["name"])] for user in get_users())              
-            )
-        
-def write_threads(file_name = "threads.csv"):
-    with open(file_name, 'wb') as f:
-        writer = csv.writer(f)
-        writer.writerows( 
-            (
-             [ thread["ID"], esc(thread["title"]) ]
-             for thread in get_threads())
-             )
-
-
-def write_posts(file_name = "posts.csv"):
-    with open(file_name, 'wb') as f:
-        writer = csv.writer(f)
-        writer.writerows(([
-            post["ID"],
-            post["threadID"], 
-            post["userID"],
-            esc(post["content"]),
-            post["date"].replace("T"," ")[0:19]
-            ]
-            for post in get_posts())
-            )
-        
-from collections import defaultdict
-
-# dictionaries that return 2 if key not found
-user_row = {}
-thread_row = {}
-post_row = {}
-
-
-def write_nodes(file_name = "nodes.csv"):
-    # generate cvs for Neo4J import via 
-    # https://github.com/jexp/batch-import
+class CSVWriter:
     
-    with open(file_name,'wb') as f:
-        writer = csv.writer(f, delimiter = "\t")
-        # first line lists all properties
-        writer.writerow(["type", "ID", "name", "title", "content" , "date"])
-        row_number = 1
-        for user in get_users():
-            writer.writerow(
-            # ["type", "ID"      , "name"           , "title", "content", "date"]
-              ["user", user["ID"], esc(user["name"]), ""     , ""       , ""]
-              )
-            
-            user_row[user["ID"]] = row_number
-            row_number += 1            
-            
-        for thread in get_threads():
-            writer.writerow(
-            # ["type"  , "ID"        , "name", "title"             , "content", "date"]
-              ["thread", thread["ID"], ""    , esc(thread["title"]), ""       , ""    ]
-              )
-            
-            thread_row[thread["ID"]] = row_number
-            row_number += 1
-        
-        for post in get_posts():
-            writer.writerow(
-            # ["type", "ID"      , "name", "title", "content"           , "date"]
-              ["post", post["ID"], ""    , ""     , esc(post["content"]),post["date"]]
-              )
-            
-            post_row[post["ID"]] = row_number
-            row_number += 1
-
-
-
-def write_relations(file_name = "relations.csv"):
-    # generate cvs for Neo4J import via 
-    # https://github.com/jexp/batch-import
+    def __init__(self, XMLReaderObject = XMLReader() ):
+        self.XR = XMLReaderObject
     
-    with open(file_name,'wb') as f:
-        writer = csv.writer(f, delimiter = "\t")
-        writer.writerow(["start","end","type"])
-        
-        for post in get_posts():
-            # edge from post to user
-            try:
-                writer.writerow([ 
-                     post_row[post["ID"]],
-                     user_row[post["userID"]],
-                     "WRITTEN_BY"
-                ])
-            except KeyError:
-                print "Row not found for user", post["userID"]
-                continue
+
+    
+    def write_users(self, out_file =  "users.csv"):
+        with open(out_file, 'wb') as f:
+            writer = csv.writer(f)
+            writer.writerows(
+                ([user["ID"], esc(user["name"])] for user in self.XR.get_users())              
+                )
             
-            # edge from thread to post
-            try:
-                writer.writerow([ 
-                    thread_row[post["threadID"]], 
-                    post_row[post["ID"]],
-                    "CONTAINS"
-                ])
-            except KeyError:
-                print "Row not found for thread", post["threadID"]
-                continue
+    def write_threads(self, out_file =  "threads.csv"):
+        with open(out_file, 'wb') as f:
+            writer = csv.writer(f)
+            writer.writerows( 
+                (
+                 [ thread["ID"], esc(thread["title"]) ]
+                 for thread in self.XR.get_threads())
+                 )
+    
+    
+    def write_posts(self, out_file = "posts.csv"):
+        with open(out_file, 'wb') as f:
+            writer = csv.writer(f)
+            writer.writerows(([
+                post["ID"],
+                post["threadID"], 
+                post["userID"],
+                esc(post["content"]),
+                post["date"].replace("T"," ")[0:19]
+                ]
+                for post in self.XR.get_posts())
+                )
 
-def write_thread_index(file_name = "thread_index.csv"):
-    with open(file_name,'wb') as f:
-        writer = csv.writer(f, delimiter = "\t")
-        writer.writerow(["id","key","value"])
-        for threadID, row in thread_row.items():
-            writer.writerow([row, "ID", threadID])
 
+    user_row = {}
+    thread_row = {}
+    post_row = {}    
+    def write_nodes(self, out_file = "nodes.csv"):
+        # generate cvs for Neo4J import via 
+        # https://github.com/jexp/batch-import
+        
+        with open(out_file,'wb') as f:
+            writer = csv.writer(f, delimiter = "\t")
+            # first line lists all properties
+            writer.writerow(["type", "ID", "name", "title", "content" , "date"])
+            row_number = 1
+            for user in self.XR.get_users():
+                writer.writerow(
+                # ["type", "ID"      , "name"           , "title", "content", "date"]
+                  ["user", user["ID"], esc(user["name"]), ""     , ""       , ""]
+                  )
+                
+                self.user_row[user["ID"]] = row_number
+                row_number += 1            
+                
+            for thread in self.XR.get_threads():
+                writer.writerow(
+                # ["type"  , "ID"        , "name", "title"             , "content", "date"]
+                  ["thread", thread["ID"], ""    , esc(thread["title"]), ""       , ""    ]
+                  )
+                
+                self.thread_row[thread["ID"]] = row_number
+                row_number += 1
+            
+            for post in self.XR.get_posts():
+                writer.writerow(
+                # ["type", "ID"      , "name", "title", "content"           , "date"]
+                  ["post", post["ID"], ""    , ""     , esc(post["content"]),post["date"]]
+                  )
+                
+                self.post_row[post["ID"]] = row_number
+                row_number += 1
+    
+    
+    def write_relations(self, out_file = "relations.csv"):
+        # generate cvs for Neo4J import via 
+        # https://github.com/jexp/batch-import
+        
+        with open(out_file,'wb') as f:
+            writer = csv.writer(f, delimiter = "\t")
+            writer.writerow(["start","end","type"])
+            
+            for post in self.XR.get_posts():
+                # edge from post to user
+                try:
+                    writer.writerow([ 
+                         self.post_row[post["ID"]],
+                         self.user_row[post["userID"]],
+                         "WRITTEN_BY"
+                    ])
+                except KeyError:
+                    print "Row not found for user", post["userID"]
+                    continue
+                
+                # edge from thread to post
+                try:
+                    writer.writerow([ 
+                        self.thread_row[post["threadID"]], 
+                        self.post_row[post["ID"]],
+                        "CONTAINS"
+                    ])
+                except KeyError:
+                    print "Row not found for thread", post["threadID"]
+                    continue
+    
+    def write_thread_index(self,out_file = "thread_index.csv"):
+        with open(out_file,'wb') as f:
+            writer = csv.writer(f, delimiter = "\t")
+            writer.writerow(["id","key","value"])
+            for threadID, row in self.thread_row.items():
+                writer.writerow([row, "ID", threadID])
+    
 
 def esc(s = ""):
 #    s = re.sub("""[\n,\t"']""",'',s)

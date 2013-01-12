@@ -13,6 +13,7 @@ def main():
     DBO.close()
 
 class MySQLControls:
+    info = "MySQL"
     
     def __init__(self):
         self.con = db.connect( host = "localhost",

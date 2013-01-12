@@ -4,7 +4,8 @@ from urlparse import urljoin
 # See http://stackoverflow.com/questions/10893374/python-confusions-with-urljoin
 # for usage pitfalls
 
-class Neo4JControl:
+class Neo4JControls:
+    info = "Neo4J"
     def __init__(self, url = "http://localhost:7474/"):
         
         self.url = urljoin(url,"db/data/")
@@ -54,7 +55,7 @@ class Neo4JControl:
 
 
 def TEST():
-    DBO = Neo4JControl()
+    DBO = Neo4JControls()
     
     print "Creating Node"    
     node = DBO.create_node({'testKey':'testValue'})
