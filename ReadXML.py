@@ -1,6 +1,7 @@
 from lxml import etree
 from pprint import pprint as PRINT
 from collections import defaultdict
+from random import choice
 
 # Super User Dataset
 USER_XML_default = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Super User/users.xml"
@@ -8,6 +9,8 @@ POST_XML_default = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchm
 # Latex Dataset (8959 Threads/ 6375 Users) 
 USER_XML_default = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/users.xml"
 POST_XML_default = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/posts.xml"
+
+DEBUG = False
 
 def main():
     reader = XMLReader()
@@ -54,7 +57,7 @@ class XMLReader:
             user["name"] = row.get("DisplayName")
             
             if None in user.values(): 
-                print "skipping user", user["ID"]
+                if DEBUG: print "skipping user", user["ID"]
                 continue
     
             self.user_list.append(user)
@@ -109,7 +112,7 @@ class XMLReader:
                 post["threadID"] = 0
     
             if None in post.values():
-                print "skipping post", post["ID"] 
+                if DEBUG: print "skipping post", post["ID"] 
                 continue
             
             self.post_list.append(post)
@@ -160,7 +163,7 @@ class XMLReader:
             thread["title"] = row.get("Title") if row.get("Title") else ""
             
             if None in thread.values():
-                print "skipping thread", thread["ID"] 
+                if DEBUG: print "skipping thread", thread["ID"] 
                 continue
             
             self.thread_list.append(thread)
@@ -183,8 +186,6 @@ class XMLReader:
         if not self.thread_count: self.set_threads()
         return self.thread_count
 
-
-
     #
     # Derived methods
     #
@@ -203,6 +204,21 @@ class XMLReader:
     def get_thread_ids(self):
         return self.get_thread_table().keys()
 
+    def get_post_ids(self):
+        return self.get_post_table().keys()
+
+    def get_thread_sample(self, count):
+        threads = self.get_thread_ids()
+        return [ choice(threads) for i in range(count) ]
+
+    def get_post_sample(self, count):
+        posts = self.get_post_ids()
+        return [ choice(posts) for i in range(count) ]
+
+    def get_user_sample(self, count):
+        users = self.get_user_ids()
+        return [ choice(users) for i in range(count) ]
+
 
     #
     # Statistics
@@ -216,6 +232,10 @@ class XMLReader:
             "post_count":   self.get_post_count(),
             "user_count":   self.get_user_count()
             }
+        
+    def get_thread_length(self, thread_ID):
+        return len(self.get_tp_table()[thread_ID])
+        
     #
     # Tests
     #
@@ -230,6 +250,7 @@ class XMLReader:
     
         print "=== Printing Threads ==="
         for thread_rec in self.get_threads():
+            PRINT( "NumPosts:" + str(self.get_thread_length(thread_rec["ID"])) )
             PRINT( thread_rec )
             
             sign = raw_input()

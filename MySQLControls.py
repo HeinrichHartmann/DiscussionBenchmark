@@ -1,5 +1,5 @@
 import MySQLdb as db
-
+from TimeDec import TimeDec
 from ReadXML import XMLReader
 from WriteCSV import CSVWriter
 
@@ -176,7 +176,6 @@ class MySQLControls:
         return self.cursor.fetchall()
     
     def TEST(self):
-        
         print "Insert Test Data"
         self.insert_user(ID = -1, name = "test user")
         self.insert_thread(ID = -1, title = "test thread")
@@ -185,7 +184,8 @@ class MySQLControls:
         
         for i,row in enumerate(self.get_thread(-1)):
             print i,":", row
-
+            
+    @TimeDec
     def import_XML(self,XRO):
         name = XRO.name
         self.XRO = XRO

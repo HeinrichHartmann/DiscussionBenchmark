@@ -3,6 +3,8 @@ import re
 
 from ReadXML import XMLReader
 
+DEBUG = False
+
 def main():
     XRO = XMLReader()
     
@@ -117,7 +119,7 @@ class CSVWriter:
                          "WRITTEN_BY"
                     ])
                 except KeyError:
-                    print "Row not found for user", post["userID"]
+                    if DEBUG: print "Row not found for user", post["userID"]
                     continue
                 
                 # edge from thread to post
@@ -128,7 +130,7 @@ class CSVWriter:
                         "CONTAINS"
                     ])
                 except KeyError:
-                    print "Row not found for thread", post["threadID"]
+                    if DEBUG: print "Row not found for thread", post["threadID"]
                     continue
     
     def write_thread_index(self,out_file = "thread_index.csv"):

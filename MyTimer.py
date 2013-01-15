@@ -1,4 +1,8 @@
 from time import time
+import csv
+import json
+
+LOGFILE = "time.log"
 
 class Timer:
     """
@@ -10,9 +14,12 @@ class Timer:
     timeLast = 0.0
     ticks  = []
 
-    def __init__(self,title = "Timer"):
+    logfile = ""
+
+    def __init__(self,title = "Timer", logfile = LOGFILE):
         self.title = title
         self.ticks = []
+        self.logfile = logfile
     
     def start(self):
         print "starting clock " + self.title
@@ -27,6 +34,7 @@ class Timer:
     def stop(self):
         print "stopping clock " + self.title
         self.timeStop = self.timeLast
+
    
     def show(self):
         title = self.title
@@ -46,3 +54,5 @@ Perfoming {title}:
 * Frequency: {frequency:.3f} ticks/sec ({fMin:.3f} - {fMax:.3f})
 * Average:   {timeAverage:.3f} msec/ticks ({timeMin:.3f} - {timeMax:.3f})
 """.format(**locals())
+
+        
