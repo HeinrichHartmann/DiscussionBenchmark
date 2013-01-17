@@ -19,11 +19,15 @@ class MySQLControls:
     info = "MySQL"
     
     def __init__(self):
-        self.con = db.connect( host = "localhost",
-                          user = "discuss",
-                          passwd = "discuss",
-                          db   = "discuss", 
-                        local_infile = 1)    
+        self.con = db.connect( 
+              # use TCP/IP connection to localhost
+              # putting host=localhost will use a UNIX socket
+              host = "127.0.0.1",
+              user = "discuss",
+              passwd = "discuss",
+              db   = "discuss",
+              local_infile = 1
+              ) 
         self.cursor = self.con.cursor();
 
     def close(self):
@@ -160,12 +164,12 @@ class MySQLControls:
         """.format(THREAD_TABLE, POST_TABLE, USER_TABLE))
     
     def get_thread(self, threadID):
+            # `{tt}`.title, 
+            # `{pt}`.content, 
+            # `{pt}`.date,
+            # `{ut}`.userName
         self.cursor.execute("""
-        SELECT
-            `{tt}`.title, 
-            `{pt}`.content, 
-            `{pt}`.date,
-            `{ut}`.userName
+        SELECT *
         FROM `{tt}`,`{pt}`,`{ut}` 
         WHERE (
              `{pt}`.`threadID` = `{tt}`.`ID` AND

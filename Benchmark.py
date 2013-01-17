@@ -8,7 +8,8 @@
 #
 
 from MySQLControls import MySQLControls
-from Neo4JControls import Neo4JControls
+from Neo4JNativeControls import Neo4JNativeControls
+from Neo4JRestControls import Neo4JRestControls
 from MongoControls import MongoControls
 
 from ReadXML import XMLReader
@@ -21,6 +22,16 @@ from pprint import pprint as PRINT
 
 # Dataset list
 DATASETS = [
+    {
+      "name":  "StackOverflow",
+      "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/users.xml",
+      "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/posts.xml"
+     },
+    {
+     "name" : "unix",
+     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Unix/users.xml",
+     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Unix/posts.xml"
+     },
      {
      "name" : "TexLatex",
      "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/users.xml",
@@ -30,19 +41,19 @@ DATASETS = [
       "name":  "SuperUser",
       "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Super User/users.xml",
       "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Super User/posts.xml"
-    }
+    },
     ]
 
 # Database Access Objects
 DBOS = [
+        Neo4JRestControls(),
+        Neo4JNativeControls(),
         MySQLControls(),
-        Neo4JControls(),
         MongoControls()
     ]
 
 # Number of runs
-
-RUNS = 10000
+RUNS = 1000
 
 # Logfile
 LOGFILE = "BenchmarkResults.csv"
@@ -111,6 +122,8 @@ class Benchmark:
         timer.start()
         for sample in samples:
             DBO.get_thread(sample)
+            #PRINT(DBO.get_thread(sample))
+            #raw_input()
             timer.tick()
         timer.stop()
         timer.show()

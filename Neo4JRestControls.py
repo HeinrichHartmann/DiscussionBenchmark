@@ -4,7 +4,7 @@ os.environ['CLASSPATH'] = '/usr/lib/jvm/java-6-openjdk/jre/lib/'
 os.environ['JAVA_HOME'] = '/usr/lib/jvm/java-6-openjdk/jre/'
 
 from TimeDec import TimeDec
-from neo4jrestclient import client as neo4j
+import neo4jrestclient.client as neo4j 
 # Docs https://neo4j-rest-client.readthedocs.org/en/latest/info.html#getting-started
 
 from ReadXML import XMLReader
@@ -12,6 +12,7 @@ from WriteCSV import CSVWriter
 from subprocess import call
 
 NEO4J_BIN = "/home/heinrich/Programs/neo4j-community-1.8.1/bin/neo4j"
+NEO4J_URL = "http://localhost:7474/db/data"
 BATCH_IMPORT_JAR = "/home/heinrich/Programs/neo4j-batch-import/target/batch-import-jar-with-dependencies.jar"
 DB_FOLDER = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/Neo4J"
 LOG_FILE = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/Neo4J.log"
@@ -20,17 +21,20 @@ LOG_FILE = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/Neo4
 # Make sure server is configuered to use DB_FOLDER!!
 # edit: neo4j-community-1.8.1/conf/neo4j-server.properties
 
-class Neo4JControls:
-    info = "Neo4J"
-    def __init__(self, url = "http://localhost:7474/db/data/"):
+
+class Neo4JRestControls:
+    info = "Neo4J REST"
+    
+    def __init__(self, url = NEO4J_URL):
+        self.url = url
         self.server_start()
-        self.db = neo4j.GraphDatabase(url)
 
     #
     # Server contoling
     #
     def reset(self):
         print "Reset Neo4J db"
+        self.index = None
         call("rm -Rf " + DB_FOLDER, shell = True)
 
         # self.db.query("""
@@ -39,9 +43,14 @@ class Neo4JControls:
         #    WHERE ID(n) <> 0
         #    DELETE n,r
         #    """).get_response()
-        
+
+    def open(self):       
+        self.db = neo4j.GraphDatabase(self.url)
+        self.index = self.db.node.indexes.get("threadID")
 
     def close(self):
+        self.index = None
+        self.db = None
         self.server_stop()
 
     def server_stop(self):
@@ -49,13 +58,16 @@ class Neo4JControls:
     
     def server_start(self):
         call(NEO4J_BIN + " start", shell=True)
+        print "Please restart the Neo4jDB by hand if not succesfull!"
+        print NEO4J_BIN + " start"
+        raw_input()
+
+        self.open()
 
     def server_restart(self):
-        call(NEO4J_BIN + " restart", shell=True)
-        print "Please restart the Neo4jDB by hand if not succesfull!"
-        print NEO4J_BIN + " restart"
-        raw_input()
-    
+        self.server_stop()
+        self.server_start()
+        
     def server_status(self):
         call(NEO4J_BIN + " status", shell=True)
 
@@ -100,24 +112,25 @@ class Neo4JControls:
     #
     # Access methods
     #
-    index = None
-    def get_index(self):
-        if self.index: return self.index
-        self.index = self.db.node.indexes.get("threadID")
-        return self.index
 
     def get_thread(self, ID):
-        index = self.get_index()
         try:
-            node  = index["ID"][ID].single
+            node  = self.index["ID"][ID].single
         except IndexError:
             print "threadID", ID, "not found"
             return
 
         records = []
-        for sub_node in node.traverse([
-               neo4j.Outgoing.CONTAINS, 
-               neo4j.Outgoing.WRITTEN_BY]):
+        for sub_node in node.traverse(
+            [
+                # traverse edges of type CONTAINS and WRITTEN_BY 
+                # starting from the thread node
+                neo4j.Outgoing.CONTAINS,
+                neo4j.Outgoing.WRITTEN_BY
+            ],  
+                # set max_depth of traversal to 2
+                stop = 2                           
+            ):
 
             records.append(sub_node.properties)
         
