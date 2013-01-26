@@ -10,7 +10,9 @@ POST_XML_default = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchm
 USER_XML_default = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/users.xml"
 POST_XML_default = "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/posts.xml"
 
-DEBUG = False
+DEBUG = True
+
+MAXELEM = 1000000
 
 def main():
     reader = XMLReader()
@@ -21,19 +23,22 @@ class XMLReader:
     def __init__(self, 
                 USER_XML = USER_XML_default,
                 POST_XML = POST_XML_default,
-                name = ""
+                name = "",
+                max  = MAXELEM
                 ):
         self.USER_XML = USER_XML
         self.POST_XML = POST_XML 
         self.name = name
+        self.max = max
     
     @classmethod
     def from_dataset(cls, DATASET):
         return XMLReader(
            USER_XML = DATASET["USER_XML"],
            POST_XML = DATASET["POST_XML"],
-           name =     DATASET["name"]
-                   )
+           name =     DATASET["name"],
+           max  =     DATASET["max"] if "max" in DATASET else MAXELEM 
+        )
     
     
     ### Get/Set Users ###
@@ -41,8 +46,7 @@ class XMLReader:
     user_table = None
     user_count = None
     def set_users(self):
-        fh = open(self.USER_XML)
-        xml = etree.parse(fh)
+        xml = etree.iterparse(self.USER_XML, events = ('end',), tag="row")
         
         # Create user for annonymous posts
         self.user_list = [ {"ID":-1, "name": "Annonymous"} ]
@@ -50,11 +54,17 @@ class XMLReader:
 
         count = 0
         
-        for row in xml.findall("row"):
+        for event, elem in xml:
             user = {}
     
-            user["ID"] = int(row.get("Id"))
-            user["name"] = row.get("DisplayName")
+            user["ID"] = int(elem.get("Id"))
+            user["name"] = elem.get("DisplayName")
+
+            # Free memory http://www.ibm.com/developerworks/xml/library/x-hiperfparse/
+            elem.clear()
+            #  Also eliminate now-empty references from the root node to <Title> 
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
             
             if None in user.values(): 
                 if DEBUG: print "skipping user", user["ID"]
@@ -63,10 +73,12 @@ class XMLReader:
             self.user_list.append(user)
             self.user_table[user["ID"]] = user
             count += 1
-                    
+
+            
+            if count == self.max: break
+        
         xml = None
-        fh.close()
-        self.user_count = count 
+        self.user_count = count
         
     def get_users(self):
         if not self.user_list: self.set_users()
@@ -86,30 +98,35 @@ class XMLReader:
     post_count = None
     tp_table   = None
     def set_posts(self):
-        fh = open(self.POST_XML)
-        xml = etree.parse(fh)
+        xml = etree.iterparse(self.POST_XML, events = ('end',), tag="row")
         
         self.post_list = []
         self.post_table = {}
         self.tp_table   = defaultdict(list)
         
         count = 0
-        for row in xml.findall("row"):
+        for event, elem in xml:
             post = {}
     
-            post["ID"] =      int(row.get("Id"))
-            post["userID"] =  int(row.get("OwnerUserId")) if row.get("OwnerUserId") else -1
-            post["content"] = row.get("Body")
-            post["date"] =    row.get("CreationDate")
+            post["ID"] =      int(elem.get("Id"))
+            post["userID"] =  int(elem.get("OwnerUserId")) if elem.get("OwnerUserId") else -1
+            post["content"] = elem.get("Body")
+            post["date"] =    elem.get("CreationDate")
     
-            if row.get("PostTypeId") == "1": 
+            if elem.get("PostTypeId") == "1": 
                 # If post is a question, then ThreadID = PostID
                 post["threadID"] = int(post["ID"])
-            elif row.get("PostTypeId") == "2":
+            elif elem.get("PostTypeId") == "2":
                 # Post is an answer
-                post["threadID"] = int(row.get("ParentId"))
+                post["threadID"] = int(elem.get("ParentId"))
             else:
                 post["threadID"] = 0
+    
+            # Free memory http://www.ibm.com/developerworks/xml/library/x-hiperfparse/
+            elem.clear()
+            #  Also eliminate now-empty references from the root node to <Title> 
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
     
             if None in post.values():
                 if DEBUG: print "skipping post", post["ID"] 
@@ -118,12 +135,11 @@ class XMLReader:
             self.post_list.append(post)
             self.post_table[post["ID"]] = post
             self.tp_table[post["threadID"]].append(post)
-            
+                        
             count +=1
+            if count == self.max: break
             
         self.post_count = count
-        xml = None
-        fh.close()
         
     def get_posts(self):
         if not self.post_list: self.set_posts()
@@ -147,31 +163,39 @@ class XMLReader:
     thread_table = None
     thread_list = None
     def set_threads(self):
-        fh = open(self.POST_XML)
-        xml = etree.parse(fh)
+        xml = etree.iterparse(self.POST_XML, events = ('end',), tag="row")
         
         self.thread_list = []
         self.thread_table = {}
         
         count = 0
-        for row in xml.findall("row"):
+        for event, elem in xml:
             # skip if not a question post
-            if not row.get("PostTypeId") == "1": continue 
+            if not elem.get("PostTypeId") == "1": continue 
     
             thread = {}
-            thread["ID"] =    int(row.get("Id")) 
-            thread["title"] = row.get("Title") if row.get("Title") else ""
+            thread["ID"] =    int(elem.get("Id")) 
+            thread["title"] = elem.get("Title") if elem.get("Title") else ""
             
+            # Free memory http://www.ibm.com/developerworks/xml/library/x-hiperfparse/
+            elem.clear()
+            #  Also eliminate now-empty references from the root node to <Title> 
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+             
             if None in thread.values():
                 if DEBUG: print "skipping thread", thread["ID"] 
                 continue
             
             self.thread_list.append(thread)
             self.thread_table[thread["ID"]] = thread
+
             count += 1
+            
+            if count == self.max: break
+
         
         xml = None
-        fh.close()
         self.thread_count = count
         
     def get_threads(self):

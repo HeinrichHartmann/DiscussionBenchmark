@@ -1,3 +1,20 @@
+/Neo4J.log
+/batch.properties
+/Stack Exchange Data Dump - Sept 2011/Content/stackoverflow.com.7z.001
+/Stack Exchange Data Dump - Sept 2011/Content/stackoverflow.com.7z.002
+/Stack Exchange Data Dump - Sept 2011/Content/stackoverflow.com.7z.003
+/Stack Exchange Data Dump - Sept 2011/Content/stackoverflow.com.7z.004
+/Stack Exchange Data Dump - Sept 2011/Content/stackoverflow.com.7z.005
+/Stack Exchange Data Dump - Sept 2011/Content/stackoverflow.com.7z.006
+*.csv
+*.7z
+*.xml
+*.txt
+092011*
+*~
+NativeNeo4J
+Neo4J
+
 *.py[cod]
 
 # C extensions

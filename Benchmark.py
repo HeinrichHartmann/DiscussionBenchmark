@@ -22,21 +22,40 @@ from pprint import pprint as PRINT
 
 # Dataset list
 DATASETS = [
-    {
-      "name":  "StackOverflow",
-      "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/users.xml",
-      "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/posts.xml"
-     },
-    {
-     "name" : "unix",
-     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Unix/users.xml",
-     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Unix/posts.xml"
-     },
-     {
-     "name" : "TexLatex",
-     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/users.xml",
-     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/posts.xml"
-     },
+#    {
+#      "name":  "StackOverflow 1K",
+#      "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/users.xml",
+#      "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/posts.xml",
+#      "max"     : 1000,
+#     },
+#    {
+#      "name":  "StackOverflow 10k",
+#      "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/users.xml",
+#      "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/posts.xml",
+#      "max"     : 10000
+#     },
+#    {
+#      "name":  "StackOverflow 100K",
+#      "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/users.xml",
+#      "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/posts.xml",
+#      "max"     : 100000
+#     },
+#    {
+#      "name":  "StackOverflow 1M",
+#      "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/users.xml",
+#      "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Stack Overflow/posts.xml",
+#      "max"     : 1000000
+#     },
+#    {
+#     "name" : "unix",
+#     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Unix/users.xml",
+#     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Unix/posts.xml"
+#     },
+#     {
+#     "name" : "TexLatex",
+#     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/users.xml",
+#     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/posts.xml"
+#     },
      {
       "name":  "SuperUser",
       "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Super User/users.xml",
@@ -46,7 +65,7 @@ DATASETS = [
 
 # Database Access Objects
 DBOS = [
-        Neo4JRestControls(),
+#        Neo4JRestControls(),
         Neo4JNativeControls(),
         MySQLControls(),
         MongoControls()
@@ -56,9 +75,15 @@ DBOS = [
 RUNS = 1000
 
 # Logfile
-LOGFILE = "BenchmarkResults.csv"
+LOGFILE = "NewBenchmarkResults.csv"
 LOGCSV = csv.writer(open(LOGFILE, "a"))
 LOGCSV.writerow(["Title", "DB","Dataset"])
+
+# ThreadListFile 
+
+THREADFILE = "threads.csv"
+
+
 
 def main():
     BO = Benchmark(DATASETS,DBOS)
@@ -90,7 +115,9 @@ class Benchmark:
             print "* Generating samples"            
             warmup_sample = XRO.get_thread_sample(RUNS)
             thread_sample = XRO.get_thread_sample(RUNS)
-            
+
+            self.LOG_THREADS(thread_sample)
+
             LOGCSV.writerow(["Thread Lengths", "", XRO.name] +  [ XRO.get_thread_length(thread) for thread in thread_sample] )
             
             for DBO in self.DBOS:
@@ -135,6 +162,12 @@ class Benchmark:
     def edit_post_benchmark(self,DBO, samples):
         pass
 
+    def LOG_THREADS(self, threads):
+        fh = open(THREADFILE, "w")
+        TW = csv.writer(fh)
+        TW.writerow(threads)
+        fh.close()
+        
 
 if __name__ == "__main__": 
     main()

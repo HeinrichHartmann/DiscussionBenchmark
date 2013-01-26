@@ -46,8 +46,12 @@ class Neo4JRestControls:
 
     def open(self):       
         self.db = neo4j.GraphDatabase(self.url)
-        self.index = self.db.node.indexes.get("threadID")
-
+        try:    
+            self.index = self.db.node.indexes.get("threadID")
+        except neo4j.NotFoundError:
+            self.index = None
+                     
+        
     def close(self):
         self.index = None
         self.db = None
@@ -138,7 +142,7 @@ class Neo4JRestControls:
 
 
 def TEST():
-    DBO = Neo4JControls()    
+    DBO = Neo4JRestControls()    
     DBO.reset()
     DBO.import_XML(XMLReader())
 

@@ -130,21 +130,11 @@ class Neo4JNativeControls:
                 records.append([k,v])
         
         return records
-
-
-def stop_at_depth(depth):
-    def evaluator(path):
-        if len(path) >= depth:
-            return neo4j.Evaluation.INCLUDE_AND_PRUNE
-
-        return neo4j.Evaluation.INCLUDE_AND_CONTINUE
-    return evaluator
-        
         
         
 
 def TEST():
-    DBO = Neo4JControls()    
+    DBO = Neo4JNativeControls()    
     DBO.reset()
     DBO.import_XML(XMLReader())
     print DBO.get_thread(1)
