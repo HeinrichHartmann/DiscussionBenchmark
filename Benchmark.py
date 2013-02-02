@@ -47,6 +47,11 @@ DATASETS = [
 #      "max"     : 1000000
 #     },
 #    {
+#     "name" : "Android",
+#     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Android/users.xml",
+#     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Android/posts.xml"
+#     },
+#    {
 #     "name" : "unix",
 #     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Unix/users.xml",
 #     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Unix/posts.xml"
@@ -55,6 +60,16 @@ DATASETS = [
 #     "name" : "TexLatex",
 #     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/users.xml",
 #     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 TeX - LaTeX/posts.xml"
+#     },
+#    {
+#     "name" : "Ubuntu",
+#     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Ubuntu/users.xml",
+#     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 Ubuntu/posts.xml"
+#     },
+#    {
+#     "name" : "ServerFault",
+#     "USER_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 ServerFault/users.xml",
+#     "POST_XML": "/home/heinrich/Desktop/eclipse_related-work/DiscussionBenchmark/092011 ServerFault/posts.xml"
 #     },
      {
       "name":  "SuperUser",
@@ -65,7 +80,7 @@ DATASETS = [
 
 # Database Access Objects
 DBOS = [
-#        Neo4JRestControls(),
+        Neo4JRestControls(),
         Neo4JNativeControls(),
         MySQLControls(),
         MongoControls()
@@ -119,17 +134,18 @@ class Benchmark:
             self.LOG_THREADS(thread_sample)
 
             LOGCSV.writerow(["Thread Lengths", "", XRO.name] +  [ XRO.get_thread_length(thread) for thread in thread_sample] )
-            
+
+            print "* Average Thread Length:", sum([ XRO.get_thread_length(thread) for thread in thread_sample])/float(RUNS)
+
             for DBO in self.DBOS:
                 print "* Current Db: ", DBO.info
                 # Warmup run
-                self.retrieval_benchmark(DBO, warmup_sample)
+                print "* warming up caches"
+                self.retrieval_benchmark(DBO, warmup_sample, silent = True)
                 
                 # Benchmark
                 results = self.retrieval_benchmark(DBO, thread_sample)
                 LOGCSV.writerow(["Retrieval Ticks", DBO.info, DBO.XRO.name] +  results )
-
-
 
             print "=== Edit Post Benchmark ==="
             print "* Generating samples"
@@ -144,7 +160,7 @@ class Benchmark:
         for DBO in DBOS:
             DBO.close()
     
-    def retrieval_benchmark(self,DBO, samples):
+    def retrieval_benchmark(self,DBO, samples, silent = False):
         timer = Timer()
         timer.start()
         for sample in samples:
@@ -153,7 +169,7 @@ class Benchmark:
             #raw_input()
             timer.tick()
         timer.stop()
-        timer.show()
+        if silent == False: timer.show()
         return timer.ticks
                 
     def add_post_benchmark(self,DBO):

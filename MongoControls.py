@@ -4,7 +4,7 @@ from TimeDec import TimeDec
 from ReadXML import XMLReader
 
 DEBUG = False
-
+USEROFFSET = 1000000
 def main():
     DBO = MongoControls()
     
@@ -30,7 +30,7 @@ class MongoControls:
         self.tc  = self.db[self.COL_THREAD]
         self.uc  = self.db[self.COL_USER]
         self.XRO  = XMLReader()
-        
+    
     def close(self):
         pass
     
@@ -41,32 +41,42 @@ class MongoControls:
     def insert_thread(self, data):
         # Insert data into thread collection
         # returns id
-        return self.tc.insert(data)
+        try:
+            id = self.tc.insert(data)
+        except pymongo.errors.DuplicateKeyError:
+            id = None
+        return id
 
     def insert_user(self, data):
         # Insert data into user collection
         # returns id
-        return self.uc.insert(data)
+        try:
+            id = self.uc.insert(data)
+        except pymongo.errors.DuplicateKeyError:
+            id = None
+        return id
 
     def get_thread(self, ID):
-        thread_rec = self.tc.find_one({"ID": ID})
+        thread_rec = self.tc.find_one({"_id": ID})
 
         user_list  = []
         try:
             for post in thread_rec["posts"]:
-                user_list.append(self.uc.find({"ID":post["userID"]}))
+                user_list.append([post["userID"]  + USEROFFSET, 
+                                  self.uc.find_one({"_id": post["userID"] + USEROFFSET})])
         except KeyError:
-            pass    
+            pass
         
-        return [thread_rec, user_list]
+        return {"thread":thread_rec, "users": user_list}
     
     def get_user(self, ID):
-        return self.uc.find_one({"ID": ID})
+        return self.uc.find_one({"_id": ID})
     
     
     def fill_users(self, batch_size = 5000):
         buffer = []
         for user in self.XRO.get_users():
+            user["_id"] = user["ID"] + USEROFFSET
             buffer.append(user)
             
             if len(buffer) == batch_size:
@@ -79,6 +89,7 @@ class MongoControls:
     def fill_threads(self, batch_size = 5000):
         buffer = []
         for thread in self.XRO.get_complete_threads():
+            thread["_id"] = thread["ID"]
             buffer.append(thread)
             
             if len(buffer) == batch_size:

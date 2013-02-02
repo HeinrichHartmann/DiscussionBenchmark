@@ -22,7 +22,7 @@ class Timer:
         self.logfile = logfile
     
     def start(self):
-        print "starting clock " + self.title
+        #print "starting clock " + self.title
         self.timeStart = time()
         self.timeLast = self.timeStart
 
@@ -32,7 +32,7 @@ class Timer:
         self.timeLast = timeNow
 
     def stop(self):
-        print "stopping clock " + self.title
+        #print "stopping clock " + self.title
         self.timeStop = self.timeLast
 
    
